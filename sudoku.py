@@ -135,6 +135,11 @@ for idx in master_idx:
    u_opts = mk_grids()
    u_cnt  = 0
 
+   # identify choices that can't go in the current spot because they have to go
+   # in a different spot 
+   e_dict    = dict()
+   excl_list = set()
+
 
    # if we're past the first row, but not on the last column
    if y > 0 and x < 8:
@@ -157,6 +162,14 @@ for idx in master_idx:
          # for all of the valid choices, bump the counter in u_dict
          for c in u_temp:
             u_dict[c] = u_dict[c] + 1
+
+         if len( u_temp ) == 1:
+            excl_list.add( list( u_temp )[0] )
+
+      for c in excl_list:
+         e_dict[c] = u_dict[c]
+         del u_dict[c]
+
 
       # now populate the bucketized choices
       for c in u_dict.keys():
@@ -212,6 +225,8 @@ for idx in master_idx:
 
    print "   ranks  = %s" % pprint.pformat( ranks,  indent=6 )
    print "   u_spot = %s" % pprint.pformat( u_spot, indent=6 )
+   print "   e_dict = %s" % pprint.pformat( e_dict, indent=6 )
+   print "   excl   = %s" % pprint.pformat( excl_list, indent=6 )
    print "   u_dict = %s" % pprint.pformat( u_dict, indent=6 )
    print "   u_opts = %s" % pprint.pformat( u_opts, indent=6 )
    print "   choose = %s" % pprint.pformat( choose, indent=6 )
