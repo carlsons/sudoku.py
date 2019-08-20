@@ -123,26 +123,34 @@ for idx in master_idx:
    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
-
-   # create the dictionary that will collect the options for each of the
-   # current choices
-   u_dict = dict()
-   for c in u_spot:
-      u_dict[c] = 0
-
-
-   # create a grid to store the bucketized choices
-   u_opts = mk_grids()
-   u_cnt  = 0
-
    # identify choices that can't go in the current spot because they have to go
    # in a different spot 
    e_dict    = dict()
    excl_list = set()
 
 
+
+
+
+
+   # create the dictionary that will collect the options for each of the
+   # current choices
+   c2x_dict = dict()
+   for c in u_spot:
+      c2x_dict[c] = set()
+
+   # create the dictionary that will collect the options for each of the
+   # current choices
+   x2c_dict = dict()
+
+
+   # create a grid to store the bucketized choices
+   u_opts = mk_grids()
+   u_cnt  = 0
+
    # if we're past the first row, but not on the last column
    if y > 0 and x < 8:
+
 
       # scan the rest of the columns in the current row
       for _x in range( x+1, 9 ):
@@ -159,28 +167,35 @@ for idx in master_idx:
          # current spot are valid choiices for the given spot
          u_temp   = set.intersection( u_spot, _x_temp, _g_temp )
 
-         # for all of the valid choices, bump the counter in u_dict
+         if u_temp:
+            x2c_dict[_x]  = u_temp
+
+         # for all of the valid choices, bump the counter in c2x_dict
          for c in u_temp:
-            u_dict[c] = u_dict[c] + 1
+            c2x_dict[c].add( _x )
 
          if len( u_temp ) == 1:
             excl_list.add( list( u_temp )[0] )
 
+
       for c in excl_list:
-         e_dict[c] = u_dict[c]
-         del u_dict[c]
+         e_dict[c] = c2x_dict[c]
+         del c2x_dict[c]
 
 
       # now populate the bucketized choices
-      for c in u_dict.keys():
+      for c in c2x_dict.keys():
+
          # for the current choice, find out how many options are left on the
          # current row
-         _cnt = u_dict[c]
+         _cnt = len( c2x_dict[c] )
          # get the bucket associated with that count
          u_opt = u_opts[ _cnt ]
          # and add the choice to that bucket and bump the count
          u_opt.add( c )
          u_cnt += 1
+
+
 
 
 
@@ -203,6 +218,19 @@ for idx in master_idx:
          choose = u_spot
 
 
+
+   x_opts   = list()
+   x_choose = set()
+
+   for c in choose:
+      if c2x_dict.has_key( c ):
+         x_opts.append( c2x_dict[c] )
+
+   if x_opts:
+      x_choose = set.intersection( *x_opts )
+
+
+
    if choose:
       choice = random.choice( list( choose ) )
 
@@ -223,13 +251,16 @@ for idx in master_idx:
 
    print_indicies( idxs )
 
-   print "   ranks  = %s" % pprint.pformat( ranks,  indent=6 )
-   print "   u_spot = %s" % pprint.pformat( u_spot, indent=6 )
-   print "   e_dict = %s" % pprint.pformat( e_dict, indent=6 )
-   print "   excl   = %s" % pprint.pformat( excl_list, indent=6 )
-   print "   u_dict = %s" % pprint.pformat( u_dict, indent=6 )
-   print "   u_opts = %s" % pprint.pformat( u_opts, indent=6 )
-   print "   choose = %s" % pprint.pformat( choose, indent=6 )
+   print "   ranks  = %s" % pprint.pformat( ranks,       indent=6 )
+   print "   u_spot = %s" % pprint.pformat( u_spot,      indent=6 )
+   print "   e_dict = %s" % pprint.pformat( e_dict,      indent=6 )
+   print "   excl   = %s" % pprint.pformat( excl_list,   indent=6 )
+   print "   c2x    = %s" % pprint.pformat( c2x_dict,    indent=6 )
+   print "   x2c    = %s" % pprint.pformat( x2c_dict,    indent=6 )
+   print "   u_opts = %s" % pprint.pformat( u_opts,      indent=6 )
+   print "   x_opts = %s" % pprint.pformat( x_opts,      indent=6 )
+   print "   x_ch   = %s" % pprint.pformat( x_choose,    indent=6 )
+   print "   choose = %s" % pprint.pformat( choose,      indent=6 )
 
    if choice:
       result.append( choice )
