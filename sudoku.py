@@ -48,7 +48,22 @@ def get_indicies( i ):
    gsx   = x - ( gx * 3 )
    gsy   = y - ( gy * 3 )
 
-   return ( idx, x, y, gi, gx, gy, gsx, gsy )
+   return ( i, x, y, gi, gx, gy, gsx, gsy )
+
+
+def get_indicies_xy( x, y ):
+
+   i     = ( y * 9 ) + x
+
+   gx    = x / 3
+   gy    = y / 3
+   gi    = ( gy * 3 ) + gx
+
+   gsx   = x - ( gx * 3 )
+   gsy   = y - ( gy * 3 )
+
+   return ( i, x, y, gi, gx, gy, gsx, gsy )
+
 
 def print_indicies( idx ):
    print "%2d: x=%d, y=%d, gi=%d, gx=%d, gy=%d, gsx=%d, gsy=%d" % idxs
@@ -105,22 +120,81 @@ for idx in master_idx:
 
 
 
-   g_next = set()
+   # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+
+   # create the dictionary that will collect the options for each of the
+   # current choices
+   u_dict = dict()
+   for c in u_spot:
+      u_dict[c] = 0
+
+
+   # create a grid to store the bucketized choices
+   u_opts = mk_grids()
+   u_cnt  = 0
+
+
+   # if we're past the first row, but not on the last column
    if y > 0 and x < 8:
+
+      # scan the rest of the columns in the current row
       for _x in range( x+1, 9 ):
-         g_next   = set.union( g_next, cols[_x] )
 
-   if g_next:
-      choose      = set.intersection( u_spot, g_next )
-   else:
-      choose      = u_spot
+         # get the indicies of the given spot
+         _idxs = get_indicies_xy( _x, y )
+         _i, _x, _y, _gi, _gx, _gy, _gsx, _gsy = _idxs
 
-   # now make a choice
+         # get the column and grid ranks for the given spot
+         _x_temp  = x_ranks[ _x ]
+         _g_temp  = g_ranks[ _gi ]
+
+         # and take the instersection to see if any of the choice for the
+         # current spot are valid choiices for the given spot
+         u_temp   = set.intersection( u_spot, _x_temp, _g_temp )
+
+         # for all of the valid choices, bump the counter in u_dict
+         for c in u_temp:
+            u_dict[c] = u_dict[c] + 1
+
+      # now populate the bucketized choices
+      for c in u_dict.keys():
+         # for the current choice, find out how many options are left on the
+         # current row
+         _cnt = u_dict[c]
+         # get the bucket associated with that count
+         u_opt = u_opts[ _cnt ]
+         # and add the choice to that bucket and bump the count
+         u_opt.add( c )
+         u_cnt += 1
+
+
+
+   choose = set()
    choice = None
+
+
+   # make sure the zero bucket is less than 2; this bucket contains those
+   # choices that have no other possible spots on this line if we have
+   # more than 1, then we can't complete this game grid
+   if len( u_opts[0] ) < 2:
+
+      if u_cnt:
+         for u_opt in u_opts:
+            if len( u_opt ):
+               choose = u_opt
+               break
+
+      if not choose:
+         choose = u_spot
+
+
    if choose:
       choice = random.choice( list( choose ) )
-   elif u_spot:
-      choice = random.choice( list( u_spot ) )
+
+
+   # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
 
@@ -138,7 +212,8 @@ for idx in master_idx:
 
    print "   ranks  = %s" % pprint.pformat( ranks,  indent=6 )
    print "   u_spot = %s" % pprint.pformat( u_spot, indent=6 )
-   print "   g_next = %s" % pprint.pformat( g_next, indent=6 )
+   print "   u_dict = %s" % pprint.pformat( u_dict, indent=6 )
+   print "   u_opts = %s" % pprint.pformat( u_opts, indent=6 )
    print "   choose = %s" % pprint.pformat( choose, indent=6 )
 
    if choice:
