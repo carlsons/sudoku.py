@@ -199,9 +199,10 @@ for idx in master_idx:
 
 
 
+   choice = None
 
    choose = set()
-   choice = None
+   c_lvl  = None
 
 
    # make sure the zero bucket is less than 2; this bucket contains those
@@ -210,13 +211,16 @@ for idx in master_idx:
    if len( c_opts[0] ) < 2:
 
       if c_cnt:
-         for c_opt in c_opts:
+         for lvl in range( 0, len( c_opts ) ):
+            c_opt = c_opts[lvl]
             if len( c_opt ):
                choose = c_opt
+               c_lvl  = lvl
                break
 
       if not choose:
          choose = xyg_curr
+         c_lvl  = None
 
 
 
