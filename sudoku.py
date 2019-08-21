@@ -104,6 +104,8 @@ for idx in master_idx:
    idxs = get_indicies( idx )
    i, x, y, gi, gx, gy, gsx, gsy = idxs
 
+
+
    # get the ranks for the current column, row and grid
    x_rank         = x_ranks[ x ]    # columns
    y_rank         = y_ranks[ y ]    # rows
@@ -111,12 +113,8 @@ for idx in master_idx:
    # toss them into a list so we can handle the updates below
    ranks          = [ x_rank, y_rank, g_rank ]
 
-   # get the current sets of choices
-   grid           = grids[ gi ]
-   col            = cols[ x ]
-
    # this union describes all of the choices for the current spot
-   u_spot         = set.intersection( x_rank, y_rank, g_rank )
+   xyg_curr         = set.intersection( x_rank, y_rank, g_rank )
 
 
 
@@ -130,13 +128,10 @@ for idx in master_idx:
 
 
 
-
-
-
    # create the dictionary that will collect the options for each of the
    # current choices
    c2x_dict = dict()
-   for c in u_spot:
+   for c in xyg_curr:
       c2x_dict[c] = set()
 
    # create the dictionary that will collect the options for each of the
@@ -145,15 +140,18 @@ for idx in master_idx:
 
 
    # create a grid to store the bucketized choices
-   u_opts = mk_grids()
-   u_cnt  = 0
+   c_opts = mk_grids()
+   c_cnt  = 0
 
    # if we're past the first row, but not on the last column
    if y > 0 and x < 8:
 
 
-      # scan the rest of the columns in the current row
+      # peek ahead and gather statistics about the remaining choices
+
       for _x in range( x+1, 9 ):
+
+
 
          # get the indicies of the given spot
          _idxs = get_indicies_xy( _x, y )
@@ -165,17 +163,22 @@ for idx in master_idx:
 
          # and take the instersection to see if any of the choice for the
          # current spot are valid choiices for the given spot
-         u_temp   = set.intersection( u_spot, _x_temp, _g_temp )
+         xyg_peek   = set.intersection( xyg_curr, _x_temp, _g_temp )
 
-         if u_temp:
-            x2c_dict[_x]  = u_temp
 
-         # for all of the valid choices, bump the counter in c2x_dict
-         for c in u_temp:
-            c2x_dict[c].add( _x )
+         if len( xyg_peek ) == 1:
+            c = list( xyg_peek )[0]
+            excl_list.add( c )
 
-         if len( u_temp ) == 1:
-            excl_list.add( list( u_temp )[0] )
+
+         if xyg_peek:
+
+            x2c_dict[_x]  = xyg_peek
+
+            # for all of the valid choices, bump the counter in c2x_dict
+            for c in xyg_peek:
+               c2x_dict[c].add( _x )
+
 
 
       for c in excl_list:
@@ -189,11 +192,9 @@ for idx in master_idx:
          # for the current choice, find out how many options are left on the
          # current row
          _cnt = len( c2x_dict[c] )
-         # get the bucket associated with that count
-         u_opt = u_opts[ _cnt ]
-         # and add the choice to that bucket and bump the count
-         u_opt.add( c )
-         u_cnt += 1
+         # add the choice to the bucket for the given count
+         c_opts[ _cnt ].add( c )
+         c_cnt += 1
 
 
 
@@ -206,26 +207,31 @@ for idx in master_idx:
    # make sure the zero bucket is less than 2; this bucket contains those
    # choices that have no other possible spots on this line if we have
    # more than 1, then we can't complete this game grid
-   if len( u_opts[0] ) < 2:
+   if len( c_opts[0] ) < 2:
 
-      if u_cnt:
-         for u_opt in u_opts:
-            if len( u_opt ):
-               choose = u_opt
+      if c_cnt:
+         for c_opt in c_opts:
+            if len( c_opt ):
+               choose = c_opt
                break
 
       if not choose:
-         choose = u_spot
+         choose = xyg_curr
 
 
 
    x_opts   = list()
    x_choose = set()
 
+   # for each choice in the final set, collect the set of columns for all of
+   # them
    for c in choose:
+      # if the choice has an entry in the choice to column list
+      # TODO: why would a choice not have a list
       if c2x_dict.has_key( c ):
          x_opts.append( c2x_dict[c] )
 
+   # if we have column lists, generate the intersection
    if x_opts:
       x_choose = set.intersection( *x_opts )
 
@@ -251,26 +257,28 @@ for idx in master_idx:
 
    print_indicies( idxs )
 
-   print "   ranks  = %s" % pprint.pformat( ranks,       indent=6 )
-   print "   u_spot = %s" % pprint.pformat( u_spot,      indent=6 )
-   print "   e_dict = %s" % pprint.pformat( e_dict,      indent=6 )
-   print "   excl   = %s" % pprint.pformat( excl_list,   indent=6 )
-   print "   c2x    = %s" % pprint.pformat( c2x_dict,    indent=6 )
-   print "   x2c    = %s" % pprint.pformat( x2c_dict,    indent=6 )
-   print "   u_opts = %s" % pprint.pformat( u_opts,      indent=6 )
-   print "   x_opts = %s" % pprint.pformat( x_opts,      indent=6 )
-   print "   x_ch   = %s" % pprint.pformat( x_choose,    indent=6 )
-   print "   choose = %s" % pprint.pformat( choose,      indent=6 )
+   print "   ranks      = %s" % pprint.pformat( ranks,       indent=6 )
+   print "   xyg_curr   = %s" % pprint.pformat( xyg_curr,      indent=6 )
+
+   if excl_list:
+      print ""
+      print "   excl       = %s" % pprint.pformat( excl_list,   indent=6 )
+      print "   e_dict     = %s" % pprint.pformat( e_dict,      indent=6 )
+      print ""
+
+   print "   c2x        = %s" % pprint.pformat( c2x_dict,    indent=6 )
+   print "   x2c        = %s" % pprint.pformat( x2c_dict,    indent=6 )
+   print "   c_opts     = %s" % pprint.pformat( c_opts,      indent=6 )
+   print "   x_opts     = %s" % pprint.pformat( x_opts,      indent=6 )
+   print "   x_ch       = %s" % pprint.pformat( x_choose,    indent=6 )
+   print "   choose     = %s" % pprint.pformat( choose,      indent=6 )
 
    if choice:
       result.append( choice )
       for r in ranks:
          r.remove( choice )
-      grid.add( choice )
-      col.add( choice )
 
    print "   ranks  = %s" % pprint.pformat( ranks, indent=6 )
-   print "   grid   = %s" % pprint.pformat( grid, indent=6 )
    print ""
    print "   choice = %s" % choice
 
