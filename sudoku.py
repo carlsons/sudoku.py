@@ -152,6 +152,11 @@ for idx in master_idx:
 
    path           = None
 
+   c_exc          = False
+   c_bad          = "NO"
+   c_lvl          = None
+
+
    # --------------------------------------------------------------------------------
 
    # look at the choices for the current square and decide what do do based on
@@ -225,11 +230,17 @@ for idx in master_idx:
          # excl_list from the choose options below
 
          for c in excl_list:
-            e_dict[c] = c2x_dict[c]
-            del c2x_dict[c]
+            # get the set of columns where this choice was exclusive
+            _c2x = c2x_dict[c]
+            # add this to the exclusion list, just for debugging purposes
+            e_dict[c] = _c2x
+            # but only honor the exclusion if there's only one column
+            if len( _c2x ) == 1:
+               del c2x_dict[c]
 
 
-         # now populate the bucketized choices
+         # now populate the hash buckets based on the number of downstream
+         # options each choice has
          for c in c2x_dict.keys():
 
             # for the current choice, find out how many options are left on the
@@ -240,30 +251,40 @@ for idx in master_idx:
             c_cnt += 1
 
 
+
       # ------------------------------------------------------------------
 
 
-      c_lvl  = None
 
-      # make sure the zero bucket is less than 2; this bucket contains those
-      # choices that have no other possible spots on this line if we have
-      # more than 1, then we can't complete this game grid
-      if len( c_opts[0] ) < 2:
+      # check the bucket for those choices having no other options; if there's
+      # more than 1 choice, then the game will most likely break
+      if len( c_opts[0] ) > 1:
 
-         if c_cnt:
-            for lvl in range( 0, len( c_opts ) ):
-               c_opt = c_opts[lvl]
-               if len( c_opt ):
-                  choose = c_opt
-                  c_lvl  = lvl
-                  break
+         c_bad = "YES"
+
+      elif len( c_opts[1] ) > 2:
+
+         c_bad = "MAYBE"
+
+      # TODO: it feels like there's a generalization here that we can validate;
+      # each bucket can have no more than n+1 items, where n is the index of
+      # the bucket (i.e.: the number of downstream options
 
 
-      c_exp  = False
+      # are there *any* downstream options
+      if c_cnt:
+         for lvl in range( 0, len( c_opts ) ):
+            c_opt = c_opts[lvl]
+            if len( c_opt ):
+               choose = c_opt
+               c_lvl  = lvl
+               break
 
-      if c_lvl == 1 and len( choose ) > 2:
 
-         c_exp = True
+
+      if c_lvl is not None and c_lvl > 0 and len( choose ) > ( c_lvl + 1 ):
+
+         c_exc = True
 
          # this is experimental code to try to address c_lvl == 1 cases where
          # there are three choices
@@ -277,11 +298,13 @@ for idx in master_idx:
             # if the choice has an entry in the choice to column list
             # TODO: why would a choice not have a list
             if c2x_dict.has_key( c ):
-               x_opts.append( c2x_dict[c] )
+               _c2x = c2x_dict[c]
+               if len( _c2x ) == 1:
+                  x_opts.append( _c2x )
 
          # if we have column lists, generate the intersection
          if x_opts:
-            x_choose = set.intersection( *x_opts )
+            x_choose = set.union( *x_opts )
 
 
 
@@ -321,15 +344,17 @@ for idx in master_idx:
    print "   c2x        = %s" % pprint.pformat( c2x_dict,       indent=6 )
    print "   x2c        = %s" % pprint.pformat( x2c_dict,       indent=6 )
 
+   print "   c_bad      = %s" % str( c_bad )
+
    if c_lvl is not None:
       print "   c_lvl      = %d" % c_lvl
 
    print "   c_opts     = %s" % pprint.pformat( c_opts,         indent=6 )
 
-   if c_exp:
+   if c_exc:
       print ""
       print "   x_opts     = %s" % pprint.pformat( x_opts,      indent=6 )
-      print "   x_ch       = %s" % pprint.pformat( x_choose,    indent=6 )
+      print "   x_choose   = %s" % pprint.pformat( x_choose,    indent=6 )
       print ""
 
    print "   choose     = %s" % pprint.pformat( choose,         indent=6 )
