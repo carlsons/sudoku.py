@@ -1,5 +1,18 @@
 #! /usr/bin/python
 
+
+
+# terminology
+#  grid     - 9x9 game board consisting of 81 cells
+#  rows     - horizontal grouping of 9 cells
+#  columns  - vertical grouping of 9 cells
+#  boxes    - 3x3 grouping of 9 cells
+#  band     - row of boxes
+#  stck     - column of boxes
+
+#  clues    - a.ka. "givens", known values at the start of a game
+
+
 import sys
 import random
 import pprint
