@@ -8,7 +8,7 @@
 #  columns  - vertical grouping of 9 cells
 #  boxes    - 3x3 grouping of 9 cells
 #  band     - row of boxes
-#  stck     - column of boxes
+#  stack    - column of boxes
 
 #  clues    - a.ka. "givens", known values at the start of a game
 
@@ -20,78 +20,110 @@ import pprint
 DEBUG = False
 
 
+
+
+
+class SudokuGrid:
+
+   def __init__( self ):
+
+      # set up the game meta data
+
+      # this is the raw data, used to constrain the choice for each cell
+      self.game_data = Sudoku.mk_game_data()
+      self.cols, self.rows, self.boxes = self.game_data
+
+
+
+   @staticmethod
+   def mk_set():
+      return set( range( 1, 10 ) )
+
+
+   @staticmethod
+   def mk_sets():
+      r = list()
+      for x in SudokuGrid.mk_set():
+         r.append( SudokuGrid.mk_set() )
+      return r
+
+
+   @staticmethod
+   def mk_game_data():
+      return [ Sudoku.mk_sets() for i in range( 0, 3 ) ]
+
+
+   @staticmethod
+   def mk_master_idx():
+      return  range( 0, 81 )
+
+
+   @staticmethod
+   def get_indicies( i ):
+
+      x     = i % 9
+      y     = i / 9
+
+      gx    = x / 3
+      gy    = y / 3
+      gi    = ( gy * 3 ) + gx
+
+      gsx   = x - ( gx * 3 )
+      gsy   = y - ( gy * 3 )
+
+      return ( i, x, y, gi, gx, gy, gsx, gsy )
+
+
+   @staticmethod
+   def get_indicies_xy( x, y ):
+
+      i     = ( y * 9 ) + x
+
+      gx    = x / 3
+      gy    = y / 3
+      gi    = ( gy * 3 ) + gx
+
+      gsx   = x - ( gx * 3 )
+      gsy   = y - ( gy * 3 )
+
+      return ( i, x, y, gi, gx, gy, gsx, gsy )
+
+
+   @staticmethod
+   def print_indicies( idx ):
+      print "%2d: x=%d, y=%d, gi=%d, gx=%d, gy=%d, gsx=%d, gsy=%d" % idxs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # define the generator functions
 
 
-def mk_master_idx():
-   return  range( 0, 81 )
 
-
-def mk_rank():
-   return set( range( 1, 10 ) )
-
-
-def mk_ranks():
-   r = list()
-   for x in mk_rank():
-      r.append( mk_rank() )
-   return r
-
-
-def mk_game_data():
-   return [ mk_ranks(), mk_ranks(), mk_ranks() ]
 
 
 def mk_grids():
    g = list()
-   for x in mk_rank():
+   for x in mk_set():
       g.append( set() )
    return g
 
 
-def get_indicies( i ):
 
-   x     = i % 9
-   y     = i / 9
-
-   gx    = x / 3
-   gy    = y / 3
-   gi    = ( gy * 3 ) + gx
-
-   gsx   = x - ( gx * 3 )
-   gsy   = y - ( gy * 3 )
-
-   return ( i, x, y, gi, gx, gy, gsx, gsy )
-
-
-def get_indicies_xy( x, y ):
-
-   i     = ( y * 9 ) + x
-
-   gx    = x / 3
-   gy    = y / 3
-   gi    = ( gy * 3 ) + gx
-
-   gsx   = x - ( gx * 3 )
-   gsy   = y - ( gy * 3 )
-
-   return ( i, x, y, gi, gx, gy, gsx, gsy )
-
-
-def print_indicies( idx ):
-   print "%2d: x=%d, y=%d, gi=%d, gx=%d, gy=%d, gsx=%d, gsy=%d" % idxs
-
-
-# set up the game meta data
-
-# this is the raw data, used to constrain the choice for each spot
-game_data = mk_game_data()
-x_ranks, y_ranks, g_ranks = game_data
-
-# this is where we store answers for each grid so we can further constrain
-# choises
-grids = mk_grids()
-cols  = mk_grids()
 
 # pprint.pprint( game_data )
 
