@@ -9,6 +9,7 @@
 #  boxes    - 3x3 grouping of 9 cells
 #  band     - row of boxes
 #  stack    - column of boxes
+#  cell     - one of 81 positions in a sudoku grid, contains one choice
 
 #  clues    - a.ka. "givens", known values at the start of a game
 
@@ -22,6 +23,57 @@ DEBUG = False
 
 
 
+class SudokuCell:
+
+   def __init__( self, grid, cell_idx ):
+
+      self.grid            = grid                        # the grid that owns this cell
+      self.cell_idx        = cell_idx                    # the cell index 0..80 within the grid
+
+      self.idxs            = get_indicies( cell_idx )    # all of the relevant index values for the given cell
+
+      # split the index values into individual fields
+      #
+      #  i     same as cell_idx  0..80 cell           index,               left to right, top to bottom
+      #  x     column index      0..8  cell column    index within grid,   left to right
+      #  y     row index         0..8  cell row       index within grid,   top to bottom
+      #  bi    box index         0..8  box index      within grid,         left to right, top to bottom
+      #  bx    stack index       0..3  stack index    within grid,         left to right
+      #  by    band index        0..3  band index     within grid,         top to bottom
+      #  bsi   box cell index    0..9  cell index     within box,          left to right, top to bottom
+      #  bsx   box col  index    0..3  cell column    within box,          left to right
+      #  bsy   box row  index    0..3  cell row       within box,          top to bottom
+
+      self.i,     \
+      self.x,     \
+      self.y,     \
+      self.bi,    \
+      self.sx,    \
+      self.by,    \
+      self.bsi    \
+      self.bsx,   \
+      self.bsy    \
+                           = idxs
+
+      # get the remaining choices for the column, row and box
+      self.col             = self.grid.get_col( self.x )    # available choices for the current column
+      self.row             = self.grid.get_row( self.y )    # available choices for the current row
+      self.box             = self.grid.get_box( self.bi )   # available choices for the current box
+
+      # stow them into a list so we can update once we've made a choice for
+      # this cell
+      self.choice_sets     = [ self.col, self.row, self.box ]
+
+      # the intersection of remaining choices for the column row and box yields
+      # the choices that are valid for the current cell
+      self.choices         = set.intersection( x_rank, y_rank, g_rank )
+
+
+
+
+
+
+
 
 class SudokuGrid:
 
@@ -30,9 +82,20 @@ class SudokuGrid:
       # set up the game meta data
 
       # this is the raw data, used to constrain the choice for each cell
-      self.game_data = Sudoku.mk_game_data()
+      self.game_data                   = Sudoku.mk_game_data()
       self.cols, self.rows, self.boxes = self.game_data
 
+
+   def get_col( self, x ):
+      return self.cols[x]
+
+
+   def get_row( self, y ):
+      return self.rows[y]
+
+
+   def get_box( self, bi ):
+      return self.boxes[bi]
 
 
    @staticmethod
@@ -64,14 +127,15 @@ class SudokuGrid:
       x     = i % 9
       y     = i / 9
 
-      gx    = x / 3
-      gy    = y / 3
-      gi    = ( gy * 3 ) + gx
+      bx    = x / 3
+      by    = y / 3
+      bi    = ( gy * 3 ) + gx
 
-      gsx   = x - ( gx * 3 )
-      gsy   = y - ( gy * 3 )
+      bsx   = x - ( gx * 3 )
+      bsy   = y - ( gy * 3 )
+      bsi   = ( y * 3 ) + x
 
-      return ( i, x, y, gi, gx, gy, gsx, gsy )
+      return ( i, x, y, bi, bx, by, bsi, bsx, bsy )
 
 
    @staticmethod
@@ -152,20 +216,6 @@ result = list()
 
 for idx in master_idx:
 
-   idxs = get_indicies( idx )
-   i, x, y, gi, gx, gy, gsx, gsy = idxs
-
-
-
-   # get the ranks for the current column, row and grid
-   x_rank         = x_ranks[ x ]    # columns
-   y_rank         = y_ranks[ y ]    # rows
-   g_rank         = g_ranks[ gi ]   # grids
-   # toss them into a list so we can handle the updates below
-   ranks          = [ x_rank, y_rank, g_rank ]
-
-   # this union describes all of the choices for the current spot
-   xyg_curr         = set.intersection( x_rank, y_rank, g_rank )
 
 
 
