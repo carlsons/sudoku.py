@@ -30,7 +30,7 @@ class SudokuCell:
       self.grid            = grid                        # the grid that owns this cell
       self.cell_idx        = cell_idx                    # the cell index 0..80 within the grid
 
-      self.idxs            = get_indicies( cell_idx )    # all of the relevant index values for the given cell
+      self.idxs            = self.grid.get_indicies( cell_idx )    # all of the relevant index values for the given cell
 
       # split the index values into individual fields
       #
@@ -48,7 +48,7 @@ class SudokuCell:
       self.x,     \
       self.y,     \
       self.bi,    \
-      self.sx,    \
+      self.bx,    \
       self.by,    \
       self.bsi    \
       self.bsx,   \
@@ -68,6 +68,12 @@ class SudokuCell:
       # the choices that are valid for the current cell
       self.choices         = set.intersection( x_rank, y_rank, g_rank )
 
+      self.choice          = None
+
+
+   def get_choice( self ):
+      return self.choice
+
 
 
 
@@ -85,6 +91,10 @@ class SudokuGrid:
       self.game_data                   = Sudoku.mk_game_data()
       self.cols, self.rows, self.boxes = self.game_data
 
+      self.grid_idxs                   = SudokuGrid.mk_grid_idxs()
+
+      self.cells                       = dict()
+
 
    def get_col( self, x ):
       return self.cols[x]
@@ -97,6 +107,47 @@ class SudokuGrid:
    def get_box( self, bi ):
       return self.boxes[bi]
 
+
+   def print_grid( self ):
+
+      bar = "----------------------"
+      last_bx = 0
+      last_by = 0
+
+      for idx in self.grid_idxs:
+
+         idxs = get_indicies( idx )
+         i, x, y, bi, bx, by, bsi, bsx, bsy = idxs
+
+         ch = "?"
+         if self.cells.has_key( idx ):
+            ch_num = self.cells[ idx ].get_choice()
+            ch = str( ch_num )
+
+         if x == 0:
+            print ""
+            print "",
+            last_bx = 0
+
+         if gx != last_bx:
+            last_bx = gx
+            print "|",
+
+         if gy != last_by:
+            last_by = gy
+            print bar
+            print "",
+
+         print "%d" % c, 
+
+      print ""
+      print bar
+
+
+
+   # ------------------------------------------------------------
+
+   # static methoods
 
    @staticmethod
    def mk_set():
@@ -117,8 +168,8 @@ class SudokuGrid:
 
 
    @staticmethod
-   def mk_master_idx():
-      return  range( 0, 81 )
+   def mk_grid_idxs():
+      return range( 0, 81 )
 
 
    @staticmethod
@@ -174,6 +225,8 @@ class SudokuGrid:
 
 
 
+
+
 # define the generator functions
 
 
@@ -191,8 +244,6 @@ def mk_grids():
 
 # pprint.pprint( game_data )
 
-master_idx  = mk_master_idx()
-shuffle_idx = random.shuffle( mk_master_idx() )
 
 if DEBUG:
 
@@ -487,29 +538,6 @@ for idx in master_idx:
 
 print "\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
 
-last_gx = 0
-last_gy = 0
-
-for idx in range( 0, len(result) ):
-
-   idxs = get_indicies( idx )
-   i, x, y, gi, gx, gy, gsx, gsy = idxs
-
-   if x == 0:
-      print ""
-      print "",
-      last_gx  = 0
-
-   if gx != last_gx:
-      last_gx = gx
-      print "|",
-
-   if gy != last_gy:
-      last_gy = gy
-      print "----------------------"
-      print "",
-
-   print "%d" % result[ idx ],
 
 if len(result) == 81:
    print "\n\n***** SUCCESS *****\n"
