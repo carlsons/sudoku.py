@@ -1,0 +1,174 @@
+diff --git sudoku.py sudoku.py
+index 20ddfb7..d8c8d6d 100755
+--- sudoku.py
++++ sudoku.py
+@@ -22,6 +22,7 @@ DEBUG = False
+ 
+ 
+ 
++# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+ 
+ class SudokuCell:
+ 
+@@ -76,10 +77,7 @@ class SudokuCell:
+ 
+ 
+ 
+-
+-
+-
+-
++# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+ 
+ class SudokuGrid:
+ 
+@@ -87,12 +85,11 @@ class SudokuGrid:
+ 
+       # set up the game meta data
+ 
+-      # this is the raw data, used to constrain the choice for each cell
++      # this is the raw data, i.e.: the sets that to constrain the choices for
++      # each cell
+       self.game_data                   = Sudoku.mk_game_data()
+       self.cols, self.rows, self.boxes = self.game_data
+ 
+-      self.grid_idxs                   = SudokuGrid.mk_grid_idxs()
+-
+       self.cells                       = dict()
+ 
+ 
+@@ -110,13 +107,13 @@ class SudokuGrid:
+ 
+    def print_grid( self ):
+ 
+-      bar = "----------------------"
++      bar = "-" * 22
+       last_bx = 0
+       last_by = 0
+ 
+-      for idx in self.grid_idxs:
++      for idx in self.cell_idxs:
+ 
+-         idxs = get_indicies( idx )
++         idxs = self.get_indicies( idx )
+          i, x, y, bi, bx, by, bsi, bsx, bsy = idxs
+ 
+          ch = "?"
+@@ -129,16 +126,16 @@ class SudokuGrid:
+             print "",
+             last_bx = 0
+ 
+-         if gx != last_bx:
+-            last_bx = gx
++         if bx != last_bx:
++            last_bx = bx
+             print "|",
+ 
+-         if gy != last_by:
+-            last_by = gy
++         if by != last_by:
++            last_by = by
+             print bar
+             print "",
+ 
+-         print "%d" % c, 
++         print "%s" % ch,
+ 
+       print ""
+       print bar
+@@ -147,6 +144,9 @@ class SudokuGrid:
+ 
+    # ------------------------------------------------------------
+ 
++   base_idxs   = range( 0, 9 )
++   cell_idxs   = range( 0, 81 )
++
+    # static methoods
+ 
+    @staticmethod
+@@ -157,18 +157,25 @@ class SudokuGrid:
+    @staticmethod
+    def mk_sets():
+       r = list()
+-      for x in SudokuGrid.mk_set():
++      for x in SudokuGrid.base_idxs:
+          r.append( SudokuGrid.mk_set() )
+       return r
+ 
+ 
++   def mk_empty_sets():
++      r = list()
++      for x in SudokuGrid.base_idxs:
++         r.append( set() )
++      return r
++
++
+    @staticmethod
+    def mk_game_data():
+       return [ Sudoku.mk_sets() for i in range( 0, 3 ) ]
+ 
+ 
+    @staticmethod
+-   def mk_grid_idxs():
++   def mk_cell_idxs():
+       return range( 0, 81 )
+ 
+ 
+@@ -180,10 +187,10 @@ class SudokuGrid:
+ 
+       bx    = x / 3
+       by    = y / 3
+-      bi    = ( gy * 3 ) + gx
++      bi    = ( by * 3 ) + bx
+ 
+-      bsx   = x - ( gx * 3 )
+-      bsy   = y - ( gy * 3 )
++      bsx   = x - ( bx * 3 )
++      bsy   = y - ( by * 3 )
+       bsi   = ( y * 3 ) + x
+ 
+       return ( i, x, y, bi, bx, by, bsi, bsx, bsy )
+@@ -194,19 +201,12 @@ class SudokuGrid:
+ 
+       i     = ( y * 9 ) + x
+ 
+-      gx    = x / 3
+-      gy    = y / 3
+-      gi    = ( gy * 3 ) + gx
+-
+-      gsx   = x - ( gx * 3 )
+-      gsy   = y - ( gy * 3 )
+-
+-      return ( i, x, y, gi, gx, gy, gsx, gsy )
++      return SudokuGrid.get_indicies( i )
+ 
+ 
+    @staticmethod
+    def print_indicies( idx ):
+-      print "%2d: x=%d, y=%d, gi=%d, gx=%d, gy=%d, gsx=%d, gsy=%d" % idxs
++      print "%2d: x=%d, y=%d, bi=%d, bx=%d, by=%d, bsi=%d, bsx=%d, bsy=%d" % idxs
+ 
+ 
+ 
+@@ -233,12 +233,6 @@ class SudokuGrid:
+ 
+ 
+ 
+-def mk_grids():
+-   g = list()
+-   for x in mk_set():
+-      g.append( set() )
+-   return g
+-
+ 
+ 
+ 
+@@ -293,7 +287,7 @@ for idx in master_idx:
+    x2c_dict       = dict()
+ 
+    # create a grid to store the bucketized choices
+-   c_opts         = mk_grids()
++   c_opts         = mk_empty_sets()
+    c_cnt          = 0
+ 
+    path           = None
