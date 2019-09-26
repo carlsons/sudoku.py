@@ -22,6 +22,85 @@ DEBUG = False
 
 
 
+
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+class SudokuLookahead:
+
+   def __init__( self, grid, cell ):
+
+      self.grid            = grid                        # the grid
+      self.cell            = cell                        # the cell we're tyring to choose
+
+
+   def scan( self, idxs, get_cell ):
+
+      i2c_dict             = dict()                      # maps the index to the choices available
+
+      c2i_dict             = dict()                      # maps the choice to the available cells
+      for c in self.cell.choices:
+         c2i_dict[c]       = set()
+
+      excl_list            = set()                       # set of choices that have to go in a another spot
+      excl_dict            = dict()                      # maps excluded choices to their available cells
+
+      buckets              = self.grid.mk_empty_sets()   # used to bucketize choices based on the number of options
+      bucket_cnt           = 0
+
+
+      # step 1: scan the indexs, get the available options and update the cross
+      # references
+
+      for i in idxs:
+
+         # get the cell for the given index
+         cell = get_cell( i )
+         # take the intersection of the two cell to see if any of the choice
+         # for the base cell are valid for the one we're looking at
+         peek = set.intersection( self.cell.choices, cell.choices )
+
+         if peek:
+
+            if len( peek ) == 1:
+               c = list( peek )[0]
+               excl_list.add( c )
+
+            # save the choices for this index
+            i2c_dict[i]    = peek
+
+            # and add this index to the bucket for each of the available choices
+            for c in peek:
+               c2i_dict[c] = i
+
+      # step 2: pull things out of the cross reference that we can use
+
+      for c in excl_list:
+         # get the set of columns where this choice was exclusive
+         c2i               = c2i_dict[c]
+         # add this to the exclusion list, just for debugging purposes
+         excl_dict[c]      = c2i
+         # but only honor the exclusion if there's only one possible cell
+         if len( c2i ) == 1:
+            del c2i_dict[c]
+
+      # step 3: now populate the hash buckets based on the number of downstream
+      # options each choice has
+
+      for c in c2i_dict.keys():
+
+         # for the current choice, find out how many options are left
+         cnt = len( c2i_dict[c] )
+         # add the choice to the bucket for the given count
+         buckets[ cnt ].add( c )
+         bucket_cnt += 1
+
+
+
+
+
+
+
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class SudokuCell:
@@ -68,12 +147,62 @@ class SudokuCell:
       # the intersection of remaining choices for the column row and box yields
       # the choices that are valid for the current cell
       self.choices         = set.intersection( x_rank, y_rank, g_rank )
+      self.choices_len     = len( choices )
 
+      # this is the choice made for this cell and a descriptor to identify how
+      # it was chosen
       self.choice          = None
 
 
    def get_choice( self ):
       return self.choice
+
+
+
+
+
+   def get_cell_by_x( self, x ):
+
+      i = self.grid.get_index( x, self.y )
+      return SudokuCell( self.grid, i )
+
+
+
+
+
+
+
+   def choose( self ):
+
+      if not self.choices_len:
+
+         # if the current cell has no options, the game is broken
+         pass
+
+      elif self.choices_len == 1:
+
+
+         # if the current cell has only one option, choose it and skip the the
+         # look-ahead
+         self.choice       = list( self.choices )[0]
+
+      else:
+
+         if self.y > 0 and self.x < 8:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -142,6 +271,31 @@ class SudokuGrid:
 
 
 
+
+
+
+   def generate( self ):
+
+      for cell_idx in self.cell_idxs:
+
+         cell = SudokuCell( self, idx )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
    # ------------------------------------------------------------
 
    base_idxs   = range( 0, 9 )
@@ -194,6 +348,12 @@ class SudokuGrid:
       bsi   = ( y * 3 ) + x
 
       return ( i, x, y, bi, bx, by, bsi, bsx, bsy )
+
+
+   @staticmethod
+   def get_index( x, y ):
+
+      return ( y * 9 ) + x
 
 
    @staticmethod
